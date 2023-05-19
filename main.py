@@ -1,8 +1,12 @@
 #%% Packages
+from venv import create
 import pandas as pd
+
 import pyodbc
 import psycopg2
 from psycopg2 import errors
+
+from sqlalchemy import URL, create_engine
 
 #%% Functions
 def get_status(conn) -> None:
@@ -15,6 +19,7 @@ def get_status(conn) -> None:
     except:
         "You might have not connected to the database"
         return None
+    
 
 def extract() -> None:
     db_configs = {"DRIVER": "{SQL Server}",
@@ -22,19 +27,31 @@ def extract() -> None:
                   "DATABASE": "BIDB",
                   "UID": "ten",
                   "PWD": "password"}
-    mssql_conn_str = f"DRIVER={db_configs['DRIVER']};SERVER={db_configs['SERVER']};DATABASE={db_configs['DATABASE']};UID={db_configs['UID']};PWD={db_configs['PWD']}"
+    # mssql_conn_str = f"DRIVER={db_configs['DRIVER']};SERVER={db_configs['SERVER']};DATABASE={db_configs['DATABASE']};UID={db_configs['UID']};PWD={db_configs['PWD']}"
+    conn = pyodbc.connect(**db_configs)
     mssql_query = "SELECT * FROM dbo.TIPOLD"
-    df = pd.read_sql(mssql_query, mssql_conn_str)
-    return None
+    df = pd.read_sql(mssql_query, conn)
+    return df
 
+def transform():
+    return "NOT IMPLEMENTED"
+
+def load(df) -> None:
+    db_configs = {"host": "localhost",
+                    "database": "temp_database",
+                    "port": 5433,
+                    "username": "tenten",
+                    "password": "tenten1234"}
+    conn_str = URL.create("postgresql", **db_configs)
+    engine = create_engine(conn_str)
+    conn = engine.connect()
+    df.to_sql('new_table', conn, if_exists='replace', index=False)
+    return None
 #%% Main
 def main() -> None:
-    extract()
-    # db_configs = {"host": "localhost",
-    #                      "dbname": "temp_database",
-    #                      "port": 5433,
-    #                      "user": "tenten",
-    #                      "password": "tenten1234"}
+    df = extract()
+    
+    load(df)
     # conn = psycopg2.connect(**db_configs)
     # cursor = conn.cursor()
     # query = """CREATE TABLE IF NOT EXISTS testing (
